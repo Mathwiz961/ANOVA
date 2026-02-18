@@ -346,7 +346,8 @@ function fCDF(f, d1, d2){
   return regIncompleteBeta(x, d1/2, d2/2);
 }
 function fPValueUpper(f, d1, d2){
-  return clamp01(1 - fCDF(f, d1, d2));
+  const p = fCDF(f, d1, d2);
+
 }
 
 /* ---------- Parsing ---------- */
