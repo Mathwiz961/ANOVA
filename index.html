@@ -1,0 +1,949 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>One-Way ANOVA Tool</title>
+  <style>
+    :root{
+      --bg:#f6f7fb;
+      --card:#ffffff;
+      --muted:#5b667a;
+      --text:#0f172a;
+      --line:rgba(15,23,42,.12);
+      --navy:#002855;
+      --gold:#f2a900;
+      --blue:#1d4ed8;
+      --bad:#b91c1c;
+      --good:#15803d;
+      --mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+      --sans: system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, "Apple Color Emoji","Segoe UI Emoji";
+    }
+    *{box-sizing:border-box}
+    body{
+      margin:0; font-family:var(--sans);
+      background:linear-gradient(180deg, #ffffff 0%, var(--bg) 60%, var(--bg) 100%);
+      color:var(--text);
+    }
+    header{
+      background:var(--navy);
+      color:#fff;
+      padding:18px 18px;
+      border-bottom:4px solid var(--gold);
+    }
+    header .title{
+      display:flex; gap:10px; align-items:center; flex-wrap:wrap;
+      max-width:1100px; margin:0 auto;
+    }
+    .badge{
+      display:inline-flex; align-items:center; gap:8px;
+      padding:6px 10px; border-radius:999px;
+      background:rgba(242,169,0,.18);
+      border:1px solid rgba(242,169,0,.45);
+      color:#fff;
+      font-weight:600;
+      letter-spacing:.2px;
+    }
+    .badge .dot{width:8px;height:8px;border-radius:50%;background:var(--gold)}
+    h1{margin:0;font-size:18px;font-weight:800}
+    .sub{margin:2px 0 0 0;color:rgba(255,255,255,.85);font-size:13px}
+    main{max-width:1100px;margin:18px auto;padding:0 18px 40px}
+    .grid{display:grid;grid-template-columns:1.1fr .9fr;gap:14px}
+    @media (max-width: 980px){.grid{grid-template-columns:1fr}}
+    .card{
+      background:var(--card);
+      border:1px solid var(--line);
+      border-radius:16px;
+      box-shadow:0 8px 24px rgba(15,23,42,.06);
+      padding:14px;
+    }
+    .card h2{margin:0 0 8px 0;font-size:15px}
+    .help{color:var(--muted); font-size:13px; line-height:1.35}
+    textarea{
+      width:100%;
+      min-height:250px;
+      resize:vertical;
+      padding:12px;
+      border-radius:12px;
+      border:1px solid var(--line);
+      font-family:var(--mono);
+      font-size:12.5px;
+      background:#fbfcff;
+      outline:none;
+    }
+    textarea:focus{border-color:rgba(29,78,216,.45); box-shadow:0 0 0 3px rgba(29,78,216,.12)}
+    .row{display:flex;gap:10px;flex-wrap:wrap; align-items:center}
+    label{font-size:13px;color:var(--muted)}
+    select, input[type="number"], input[type="range"]{
+      border:1px solid var(--line);
+      border-radius:12px;
+      padding:10px 10px;
+      background:#fff;
+      font-size:13px;
+      outline:none;
+    }
+    select:focus,input:focus{border-color:rgba(29,78,216,.45); box-shadow:0 0 0 3px rgba(29,78,216,.12)}
+    button{
+      border:0; border-radius:12px;
+      padding:10px 12px;
+      background:var(--blue);
+      color:#fff; font-weight:700;
+      cursor:pointer;
+      box-shadow:0 8px 18px rgba(29,78,216,.18);
+    }
+    button.secondary{ background:#0b1220; box-shadow:none; }
+    button.ghost{
+      background:#fff; color:var(--navy);
+      border:1px solid rgba(0,40,85,.25);
+      box-shadow:none;
+    }
+    .err{color:var(--bad); font-size:13px; margin-top:8px}
+    .ok{color:var(--good); font-size:13px; margin-top:8px}
+    table{
+      width:100%;
+      border-collapse:collapse;
+      font-size:13px;
+      margin-top:8px;
+    }
+    th, td{
+      padding:8px 8px;
+      border-bottom:1px solid var(--line);
+      text-align:left;
+      vertical-align:top;
+    }
+    th{color:var(--muted); font-weight:800}
+    .mono{font-family:var(--mono)}
+    .pill{
+      display:inline-flex; align-items:center;
+      border-radius:999px;
+      padding:4px 10px;
+      border:1px solid var(--line);
+      background:#fff;
+      font-size:12px;
+      color:var(--muted);
+    }
+    .twoCol{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+    @media (max-width: 700px){.twoCol{grid-template-columns:1fr}}
+    .small{font-size:12px;color:var(--muted)}
+    .hr{height:1px;background:var(--line);margin:10px 0}
+    .foot{color:var(--muted);font-size:12px;line-height:1.35}
+    .canvasWrap{
+      border:1px solid var(--line);
+      border-radius:14px;
+      padding:10px;
+      background:#fff;
+    }
+    canvas{width:100%; height:280px; display:block;}
+    .inlineHelp{font-size:12px;color:var(--muted)}
+  </style>
+</head>
+<body>
+  <header>
+    <div class="title">
+      <span class="badge"><span class="dot"></span> ERAU Style</span>
+      <div>
+        <h1>One-Way ANOVA Calculator</h1>
+        <div class="sub">ANOVA table + Tukey HSD + Boxplots</div>
+      </div>
+    </div>
+  </header>
+
+  <main>
+    <div class="grid">
+      <section class="card">
+        <h2>Input</h2>
+        <div class="help">
+          Paste <b>either</b>:
+          <ul>
+            <li><b>Column format</b>: each column is a group, rows are observations.</li>
+            <li><b>Label format</b>: two columns like <span class="mono">Group,Value</span> per row.</li>
+          </ul>
+          Accepts commas, tabs, or spaces. Empty cells are ignored.
+        </div>
+
+        <div class="row" style="margin:10px 0 8px 0;">
+          <label>Parse mode:
+            <select id="mode">
+              <option value="columns">Columns = groups</option>
+              <option value="labels">Two columns: Group, Value</option>
+            </select>
+          </label>
+
+          <label>Alpha:
+            <input id="alpha" type="number" min="0.0001" max="0.5" step="0.001" value="0.05" />
+          </label>
+
+          <button id="btnCompute">Compute</button>
+          <button id="btnExample" class="ghost">Load example</button>
+          <button id="btnClear" class="secondary">Clear</button>
+        </div>
+
+        <textarea id="data" spellcheck="false" placeholder="Example (column mode):
+GroupA,GroupB,GroupC
+12,10,9
+11,12,8
+13,9,10
+..."></textarea>
+
+        <div id="msg" class="err" style="display:none;"></div>
+      </section>
+
+      <section class="card">
+        <h2>Results</h2>
+        <div id="summaryPills" class="row" style="gap:8px; margin-bottom:6px;"></div>
+
+        <div class="hr"></div>
+
+        <div class="pill">Boxplots</div>
+        <div class="canvasWrap" style="margin-top:8px;">
+          <canvas id="boxplot" width="900" height="280"></canvas>
+        </div>
+        <div class="small" style="margin-top:6px;">Whiskers: 1.5·IQR. Outliers shown as points.</div>
+
+        <div class="hr"></div>
+
+        <div class="twoCol">
+          <div>
+            <div class="pill">ANOVA Table</div>
+            <div id="anovaTable"></div>
+          </div>
+          <div>
+            <div class="pill">Group Descriptives</div>
+            <div id="descTable"></div>
+          </div>
+        </div>
+
+        <div class="hr"></div>
+
+        <div class="row" style="justify-content:space-between; align-items:flex-end;">
+          <div>
+            <div class="pill">Post-hoc Pairwise</div>
+            <div class="small">Choose Tukey HSD (recommended after ANOVA) or t-tests with correction.</div>
+          </div>
+          <label>Method:
+            <select id="posthocMethod">
+              <option value="t">t-tests (pooled MSW)</option>
+              <option value="tukey">Tukey HSD / Tukey–Kramer</option>
+            </select>
+          </label>
+        </div>
+
+        <div id="tControls" class="row" style="margin-top:8px;">
+          <label>Correction:
+            <select id="corr">
+              <option value="holm">Holm (recommended)</option>
+              <option value="bonferroni">Bonferroni</option>
+              <option value="none">None</option>
+            </select>
+          </label>
+        </div>
+
+        <div id="tukeyControls" style="display:none; margin-top:8px;">
+          <div class="row">
+            <label>Sim reps:
+              <input id="tukeyReps" type="number" min="5000" max="400000" step="5000" value="60000" />
+            </label>
+            <label>Seed:
+              <input id="tukeySeed" type="number" min="1" step="1" value="12345" />
+            </label>
+            <button id="btnReSim" class="ghost">Recompute Tukey</button>
+          </div>
+          <div class="inlineHelp">
+            Tukey uses a seeded Monte Carlo approximation of the studentized range distribution \(Q(k, df)\).
+            Increase reps for smoother p-values/critical value.
+          </div>
+        </div>
+
+        <div id="pairwiseTable" style="margin-top:6px;"></div>
+
+        <div class="hr"></div>
+        <div class="foot">
+          Notes: Classical one-way ANOVA assumes independent samples and approximately normal residuals with roughly equal variances.
+          Tukey HSD here is computed using \(MSW\) and \(df_W\) with Tukey–Kramer adjustment for unequal group sizes.
+        </div>
+      </section>
+    </div>
+  </main>
+
+<script>
+/* ---------- Numeric helpers ---------- */
+function isFiniteNumber(x){ return Number.isFinite(x) && !Number.isNaN(x); }
+function mean(arr){ return arr.reduce((a,b)=>a+b,0)/arr.length; }
+function variance(arr){
+  const m=mean(arr);
+  return arr.reduce((a,x)=>a+(x-m)*(x-m),0)/(arr.length-1);
+}
+function fmt(x, d=6){
+  if(!isFiniteNumber(x)) return "—";
+  const ax=Math.abs(x);
+  if(ax!==0 && (ax<1e-4 || ax>=1e6)) return x.toExponential(4);
+  return x.toFixed(d).replace(/\.?0+$/,'');
+}
+function clamp01(p){ return Math.max(0, Math.min(1, p)); }
+
+/* ---------- Special functions for t/F p-values ---------- */
+/* Regularized incomplete beta + t/F via beta relationship */
+function lnGamma(z){
+  const p = [
+    676.5203681218851, -1259.1392167224028, 771.32342877765313,
+    -176.61502916214059, 12.507343278686905, -0.13857109526572012,
+    9.9843695780195716e-6, 1.5056327351493116e-7
+  ];
+  if(z < 0.5){
+    return Math.log(Math.PI) - Math.log(Math.sin(Math.PI*z)) - lnGamma(1 - z);
+  }
+  z -= 1;
+  let x = 0.99999999999980993;
+  for(let i=0;i<p.length;i++) x += p[i]/(z+i+1);
+  const t = z + p.length - 0.5;
+  return 0.5*Math.log(2*Math.PI) + (z+0.5)*Math.log(t) - t + Math.log(x);
+}
+function betacf(a,b,x){
+  const MAXIT=200, EPS=3e-14, FPMIN=1e-30;
+  let qab=a+b, qap=a+1, qam=a-1;
+  let c=1, d=1 - qab*x/qap;
+  if(Math.abs(d)<FPMIN) d=FPMIN;
+  d=1/d;
+  let h=d;
+  for(let m=1;m<=MAXIT;m++){
+    let m2=2*m;
+    let aa = m*(b-m)*x/((qam+m2)*(a+m2));
+    d = 1 + aa*d; if(Math.abs(d)<FPMIN) d=FPMIN; d=1/d;
+    c = 1 + aa/c; if(Math.abs(c)<FPMIN) c=FPMIN;
+    h *= d*c;
+
+    aa = -(a+m)*(qab+m)*x/((a+m2)*(qap+m2));
+    d = 1 + aa*d; if(Math.abs(d)<FPMIN) d=FPMIN; d=1/d;
+    c = 1 + aa/c; if(Math.abs(c)<FPMIN) c=FPMIN;
+    let del = d*c;
+    h *= del;
+    if(Math.abs(del-1) < EPS) break;
+  }
+  return h;
+}
+function regIncompleteBeta(x,a,b){
+  if(x<=0) return 0;
+  if(x>=1) return 1;
+  const lnB = lnGamma(a) + lnGamma(b) - lnGamma(a+b);
+  const front = Math.exp(Math.log(x)*a + Math.log(1-x)*b - lnB)/a;
+  if(x < (a+1)/(a+b+2)){
+    return front * betacf(a,b,x);
+  } else {
+    return 1 - (front * betacf(a,b,x));
+  }
+}
+function tCDF(t, v){
+  const x = v/(v + t*t);
+  const ib = regIncompleteBeta(x, v/2, 0.5);
+  if(t >= 0) return 1 - 0.5*ib;
+  return 0.5*ib;
+}
+function tPValueTwoSided(t, v){
+  return clamp01(2*(1 - tCDF(Math.abs(t), v)));
+}
+function fCDF(f, d1, d2){
+  const x = (d1*f)/(d1*f + d2);
+  return regIncompleteBeta(x, d1/2, d2/2);
+}
+function fPValueUpper(f, d1, d2){
+  return clamp01(1 - fCDF(f, d1, d2));
+}
+
+/* ---------- Parsing ---------- */
+function splitLines(text){
+  return text.replace(/\r/g,'').split('\n').map(s=>s.trim()).filter(s=>s.length>0);
+}
+function splitCells(line){
+  if(line.includes(',')) return line.split(',').map(s=>s.trim());
+  if(line.includes('\t')) return line.split('\t').map(s=>s.trim());
+  return line.split(/\s+/).map(s=>s.trim());
+}
+function parseColumns(text){
+  const lines = splitLines(text);
+  if(lines.length===0) throw new Error("No data found.");
+  const rows = lines.map(splitCells);
+
+  let header = rows[0];
+  let firstRowNums = header.map(x=>Number(x)).filter(isFiniteNumber).length;
+  let hasHeader = firstRowNums < header.length;
+
+  let names, startRow;
+  if(hasHeader){
+    names = header.map((x,i)=>x && x.length? x : `Group${i+1}`);
+    startRow = 1;
+  } else {
+    const k = Math.max(...rows.map(r=>r.length));
+    names = Array.from({length:k}, (_,i)=>`Group${i+1}`);
+    startRow = 0;
+  }
+
+  const groups = new Map();
+  names.forEach(n=>groups.set(n, []));
+  for(let r=startRow; r<rows.length; r++){
+    const row = rows[r];
+    for(let c=0;c<names.length;c++){
+      const cell = (row[c] ?? "").trim();
+      if(cell==="") continue;
+      const val = Number(cell);
+      if(!isFiniteNumber(val)) continue;
+      groups.get(names[c]).push(val);
+    }
+  }
+  for(const [k,v] of Array.from(groups.entries())){
+    if(v.length===0) groups.delete(k);
+  }
+  if(groups.size < 2) throw new Error("Need at least 2 non-empty groups.");
+  return groups;
+}
+function parseLabels(text){
+  const lines = splitLines(text);
+  if(lines.length===0) throw new Error("No data found.");
+  const rows = lines.map(splitCells);
+
+  let start = 0;
+  if(rows[0].length >= 2){
+    const v = Number(rows[0][1]);
+    if(!isFiniteNumber(v)) start = 1;
+  }
+
+  const groups = new Map();
+  for(let i=start;i<rows.length;i++){
+    const r = rows[i];
+    if(r.length < 2) continue;
+    const g = (r[0] ?? "").trim();
+    const val = Number((r[1] ?? "").trim());
+    if(!g || !isFiniteNumber(val)) continue;
+    if(!groups.has(g)) groups.set(g, []);
+    groups.get(g).push(val);
+  }
+  if(groups.size < 2) throw new Error("Need at least 2 groups with numeric values.");
+  return groups;
+}
+
+/* ---------- ANOVA ---------- */
+function anovaOneWay(groups){
+  const names = Array.from(groups.keys());
+  const data = names.map(n=>groups.get(n));
+  const ns = data.map(a=>a.length);
+  const k = data.length;
+  const N = ns.reduce((a,b)=>a+b,0);
+
+  const means = data.map(a=>mean(a));
+  const vars  = data.map(a=>a.length>1 ? variance(a) : NaN);
+
+  const grandMean = (() => {
+    let s=0;
+    for(let i=0;i<k;i++) s += means[i]*ns[i];
+    return s/N;
+  })();
+
+  let SSB=0, SSW=0, SST=0;
+  for(let i=0;i<k;i++){
+    SSB += ns[i]*Math.pow(means[i]-grandMean,2);
+    if(ns[i]>1) SSW += (ns[i]-1)*vars[i];
+  }
+  for(let i=0;i<k;i++){
+    for(const x of data[i]) SST += Math.pow(x-grandMean,2);
+  }
+
+  const dfB = k-1;
+  const dfW = N-k;
+  const MSB = SSB/dfB;
+  const MSW = SSW/dfW;
+  const F = MSB/MSW;
+  const p = fPValueUpper(F, dfB, dfW);
+
+  const eta2 = SSB/SST;
+  const omega2 = (SSB - dfB*MSW) / (SST + MSW);
+
+  return { names, data, ns, means, vars, grandMean, N, k, SSB, SSW, SST, dfB, dfW, MSB, MSW, F, p, eta2, omega2 };
+}
+
+/* ---------- Post-hoc (t-tests pooled) ---------- */
+function pairwiseTTests(res, correction="holm"){
+  const {names, ns, means, MSW, dfW} = res;
+  const k = names.length;
+  const pairs = [];
+  for(let i=0;i<k;i++){
+    for(let j=i+1;j<k;j++){
+      const se = Math.sqrt(MSW*(1/ns[i] + 1/ns[j]));
+      const t = (means[i]-means[j]) / se;
+      const p = tPValueTwoSided(t, dfW);
+      pairs.push({ a:names[i], b:names[j], meanDiff: means[i]-means[j], stat:t, df: dfW, pRaw:p });
+    }
+  }
+  const m = pairs.length;
+  if(correction === "none" || m===0){
+    pairs.forEach(x=>x.pAdj=x.pRaw); return pairs;
+  }
+  if(correction === "bonferroni"){
+    pairs.forEach(x=>x.pAdj=Math.min(1, x.pRaw*m)); return pairs;
+  }
+  if(correction === "holm"){
+    const idx = pairs.map((_,i)=>i).sort((i,j)=>pairs[i].pRaw - pairs[j].pRaw);
+    const adj = new Array(m);
+    for(let r=0;r<m;r++){
+      const i = idx[r];
+      adj[i] = Math.min(1, pairs[i].pRaw*(m-r));
+    }
+    const rankedAdj = idx.map(i=>adj[i]);
+    for(let r=1;r<m;r++) rankedAdj[r] = Math.max(rankedAdj[r], rankedAdj[r-1]);
+    for(let r=0;r<m;r++){
+      const i = idx[r];
+      pairs[i].pAdj = rankedAdj[r];
+    }
+    return pairs;
+  }
+  pairs.forEach(x=>x.pAdj=x.pRaw);
+  return pairs;
+}
+
+/* ---------- Tukey HSD / Tukey–Kramer (Monte Carlo Q) ---------- */
+/* Studentized range: Q = (max Zi - min Zi) / sqrt(V/df) where Zi~N(0,1), V~ChiSq(df) indep */
+function mulberry32(seed){
+  let a = seed >>> 0;
+  return function(){
+    a |= 0; a = (a + 0x6D2B79F5) | 0;
+    let t = Math.imul(a ^ (a >>> 15), 1 | a);
+    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+}
+function randn(rng){
+  // Box-Muller
+  let u=0, v=0;
+  while(u===0) u=rng();
+  while(v===0) v=rng();
+  return Math.sqrt(-2*Math.log(u)) * Math.cos(2*Math.PI*v);
+}
+function randChiSq(df, rng){
+  // Chi-square as sum of squares of N(0,1)
+  let s=0;
+  for(let i=0;i<df;i++){
+    const z = randn(rng);
+    s += z*z;
+  }
+  return s;
+}
+function quantile(sortedArr, q){
+  // q in [0,1], linear interpolation
+  const n = sortedArr.length;
+  if(n===0) return NaN;
+  const pos = (n-1)*q;
+  const lo = Math.floor(pos);
+  const hi = Math.ceil(pos);
+  if(lo===hi) return sortedArr[lo];
+  const w = pos - lo;
+  return sortedArr[lo]*(1-w) + sortedArr[hi]*w;
+}
+function simulateQDist(k, df, reps, seed){
+  const rng = mulberry32(seed);
+  const qs = new Array(reps);
+  for(let r=0;r<reps;r++){
+    let mn=Infinity, mx=-Infinity;
+    for(let i=0;i<k;i++){
+      const z = randn(rng);
+      if(z<mn) mn=z;
+      if(z>mx) mx=z;
+    }
+    const v = randChiSq(df, rng);
+    const denom = Math.sqrt(v/df);
+    qs[r] = (mx - mn)/denom;
+  }
+  qs.sort((a,b)=>a-b);
+  return qs;
+}
+function tukeyKramerPairs(res, alpha, reps, seed){
+  const {names, ns, means, MSW, dfW, k} = res;
+
+  // simulate Q(k, dfW) once
+  const qs = simulateQDist(k, Math.max(1, Math.round(dfW)), reps, seed);
+  const qcrit = quantile(qs, 1 - alpha);
+
+  const pairs = [];
+  for(let i=0;i<k;i++){
+    for(let j=i+1;j<k;j++){
+      const se = Math.sqrt(MSW/2 * (1/ns[i] + 1/ns[j])); // Tukey–Kramer
+      const qobs = Math.abs(means[i]-means[j]) / se;
+
+      // Monte Carlo p-value: P(Q >= qobs)
+      // binary search lower bound
+      let lo=0, hi=qs.length;
+      while(lo<hi){
+        const mid=(lo+hi)>>1;
+        if(qs[mid] < qobs) lo=mid+1; else hi=mid;
+      }
+      const tail = (qs.length - lo) / qs.length;
+      const p = clamp01(tail);
+
+      pairs.push({
+        a:names[i], b:names[j],
+        meanDiff: means[i]-means[j],
+        stat:qobs,
+        qcrit,
+        pAdj:p, // Tukey already controls FWER
+        sig: qobs >= qcrit
+      });
+    }
+  }
+  return {pairs, qcrit};
+}
+
+/* ---------- Boxplot stats + rendering ---------- */
+function medianSorted(s){
+  const n = s.length;
+  if(n===0) return NaN;
+  const mid = Math.floor(n/2);
+  if(n%2===1) return s[mid];
+  return (s[mid-1]+s[mid])/2;
+}
+function quartiles(arr){
+  const s = [...arr].sort((a,b)=>a-b);
+  const n = s.length;
+  const med = medianSorted(s);
+  const lower = s.slice(0, Math.floor(n/2));
+  const upper = s.slice(Math.ceil(n/2));
+  const q1 = medianSorted(lower);
+  const q3 = medianSorted(upper);
+  return {s, q1, med, q3};
+}
+function boxStats(arr){
+  const {s, q1, med, q3} = quartiles(arr);
+  const iqr = q3 - q1;
+  const loFence = q1 - 1.5*iqr;
+  const hiFence = q3 + 1.5*iqr;
+
+  let wlo = Infinity, whi = -Infinity;
+  const out = [];
+  for(const x of s){
+    if(x < loFence || x > hiFence) out.push(x);
+    else { if(x<wlo) wlo=x; if(x>whi) whi=x; }
+  }
+  // if all are outliers (rare), fall back to min/max
+  if(!isFiniteNumber(wlo)) wlo = s[0];
+  if(!isFiniteNumber(whi)) whi = s[s.length-1];
+
+  return {q1, med, q3, wlo, whi, out, min:s[0], max:s[s.length-1]};
+}
+
+function drawBoxplots(res){
+  const canvas = document.getElementById('boxplot');
+  const ctx = canvas.getContext('2d');
+
+  // crisp on hiDPI
+  const cssW = canvas.clientWidth || 900;
+  const cssH = canvas.clientHeight || 280;
+  const dpr = window.devicePixelRatio || 1;
+  canvas.width = Math.round(cssW * dpr);
+  canvas.height = Math.round(cssH * dpr);
+  ctx.setTransform(dpr,0,0,dpr,0,0);
+
+  ctx.clearRect(0,0,cssW,cssH);
+
+  const k = res.k;
+  if(!k) return;
+
+  // compute stats
+  const stats = res.data.map(a=>boxStats(a));
+  let gmin = Infinity, gmax = -Infinity;
+  for(const st of stats){
+    gmin = Math.min(gmin, st.min);
+    gmax = Math.max(gmax, st.max);
+  }
+  if(gmin === gmax){ gmin -= 1; gmax += 1; }
+
+  const padL=42, padR=16, padT=12, padB=26;
+  const plotW = cssW - padL - padR;
+  const plotH = cssH - padT - padB;
+
+  function yScale(v){
+    const t = (v - gmin) / (gmax - gmin);
+    return padT + (1 - t) * plotH;
+  }
+
+  // axes (light)
+  ctx.strokeStyle = 'rgba(15,23,42,.18)';
+  ctx.lineWidth = 1;
+  ctx.beginPath();
+  ctx.moveTo(padL, padT);
+  ctx.lineTo(padL, padT + plotH);
+  ctx.lineTo(padL + plotW, padT + plotH);
+  ctx.stroke();
+
+  // y ticks (5)
+  ctx.fillStyle = 'rgba(15,23,42,.65)';
+  ctx.font = '12px system-ui';
+  const ticks=5;
+  for(let i=0;i<=ticks;i++){
+    const v = gmin + (gmax-gmin)*i/ticks;
+    const y = yScale(v);
+    ctx.strokeStyle = 'rgba(15,23,42,.10)';
+    ctx.beginPath();
+    ctx.moveTo(padL, y);
+    ctx.lineTo(padL + plotW, y);
+    ctx.stroke();
+
+    ctx.fillText(fmt(v,4), 6, y+4);
+  }
+
+  // boxes
+  const slot = plotW / k;
+  const boxW = Math.min(52, slot*0.55);
+
+  ctx.strokeStyle = 'rgba(0,40,85,.9)';
+  ctx.lineWidth = 2;
+  ctx.fillStyle = 'rgba(29,78,216,.10)';
+
+  for(let i=0;i<k;i++){
+    const cx = padL + slot*(i + 0.5);
+    const st = stats[i];
+
+    const yQ1 = yScale(st.q1);
+    const yQ3 = yScale(st.q3);
+    const yMed= yScale(st.med);
+    const yLo = yScale(st.wlo);
+    const yHi = yScale(st.whi);
+
+    // whisker line
+    ctx.strokeStyle = 'rgba(0,40,85,.7)';
+    ctx.beginPath();
+    ctx.moveTo(cx, yHi);
+    ctx.lineTo(cx, yQ3);
+    ctx.moveTo(cx, yQ1);
+    ctx.lineTo(cx, yLo);
+    ctx.stroke();
+
+    // whisker caps
+    const cap = boxW*0.45;
+    ctx.beginPath();
+    ctx.moveTo(cx-cap, yHi); ctx.lineTo(cx+cap, yHi);
+    ctx.moveTo(cx-cap, yLo); ctx.lineTo(cx+cap, yLo);
+    ctx.stroke();
+
+    // box
+    ctx.strokeStyle = 'rgba(0,40,85,.9)';
+    ctx.fillStyle = 'rgba(29,78,216,.10)';
+    const x0 = cx - boxW/2;
+    const h = (yQ1 - yQ3);
+    ctx.beginPath();
+    ctx.rect(x0, yQ3, boxW, h);
+    ctx.fill();
+    ctx.stroke();
+
+    // median
+    ctx.beginPath();
+    ctx.moveTo(x0, yMed);
+    ctx.lineTo(x0+boxW, yMed);
+    ctx.stroke();
+
+    // outliers
+    ctx.fillStyle = 'rgba(185,28,28,.85)';
+    for(const o of st.out){
+      const yo = yScale(o);
+      ctx.beginPath();
+      ctx.arc(cx, yo, 3, 0, 2*Math.PI);
+      ctx.fill();
+    }
+
+    // x labels
+    ctx.fillStyle = 'rgba(15,23,42,.75)';
+    ctx.font = '12px system-ui';
+    const label = res.names[i];
+    const tw = ctx.measureText(label).width;
+    ctx.fillText(label, cx - tw/2, padT + plotH + 18);
+  }
+}
+
+/* ---------- Rendering tables ---------- */
+function htmlTable(headers, rows){
+  let h = `<table><thead><tr>${headers.map(x=>`<th>${x}</th>`).join('')}</tr></thead><tbody>`;
+  for(const r of rows) h += `<tr>${r.map(x=>`<td>${x}</td>`).join('')}</tr>`;
+  h += `</tbody></table>`;
+  return h;
+}
+function setMsg(text, ok=false){
+  const el = document.getElementById('msg');
+  el.style.display = 'block';
+  el.className = ok ? 'ok' : 'err';
+  el.textContent = text;
+}
+function clearMsg(){
+  const el = document.getElementById('msg');
+  el.style.display='none';
+  el.textContent='';
+}
+
+/* ---------- Main render ---------- */
+let LAST_RES = null;
+let LAST_GROUPS = null;
+
+function render(res){
+  const alpha = Number(document.getElementById('alpha').value);
+
+  // pills
+  const pills = [];
+  pills.push(`<span class="pill"><b>k</b>&nbsp;=&nbsp;${res.k}</span>`);
+  pills.push(`<span class="pill"><b>N</b>&nbsp;=&nbsp;${res.N}</span>`);
+  pills.push(`<span class="pill"><b>F</b>&nbsp;=&nbsp;${fmt(res.F,6)}</span>`);
+  pills.push(`<span class="pill"><b>p</b>&nbsp;=&nbsp;${fmt(res.p,8)}</span>`);
+  pills.push(`<span class="pill"><b>η²</b>&nbsp;=&nbsp;${fmt(res.eta2,6)}</span>`);
+  pills.push(`<span class="pill"><b>ω²</b>&nbsp;=&nbsp;${fmt(res.omega2,6)}</span>`);
+  pills.push(`<span class="pill"><b>Decision</b>:&nbsp;${res.p < alpha ? "Reject H₀" : "Fail to reject H₀"}</span>`);
+  document.getElementById('summaryPills').innerHTML = pills.join('');
+
+  // boxplots
+  drawBoxplots(res);
+
+  // ANOVA table
+  const anovaRows = [
+    ["Between (Treatments)", fmt(res.SSB,6), res.dfB, fmt(res.MSB,6), fmt(res.F,6), fmt(res.p,8)],
+    ["Within (Error)",        fmt(res.SSW,6), res.dfW, fmt(res.MSW,6), "—", "—"],
+    ["Total",                fmt(res.SST,6), res.dfB + res.dfW, "—", "—", "—"]
+  ];
+  document.getElementById('anovaTable').innerHTML = htmlTable(
+    ["Source","SS","df","MS","F","p-value"],
+    anovaRows
+  );
+
+  // descriptives
+  const descRows = res.names.map((n,i)=>[
+    n,
+    res.ns[i],
+    fmt(res.means[i],6),
+    fmt(res.vars[i],6),
+    fmt(Math.sqrt(res.vars[i]),6)
+  ]);
+  document.getElementById('descTable').innerHTML = htmlTable(
+    ["Group","n","Mean","Variance","SD"],
+    descRows
+  );
+
+  // posthoc
+  renderPosthoc(res);
+
+  // keep
+  LAST_RES = res;
+}
+
+function renderPosthoc(res){
+  const method = document.getElementById('posthocMethod').value;
+  const alpha = Number(document.getElementById('alpha').value);
+
+  document.getElementById('tControls').style.display = (method === "t") ? "flex" : "none";
+  document.getElementById('tukeyControls').style.display = (method === "tukey") ? "block" : "none";
+
+  if(method === "t"){
+    const corr = document.getElementById('corr').value;
+    const pairs = pairwiseTTests(res, corr);
+    if(pairs.length===0){
+      document.getElementById('pairwiseTable').innerHTML = `<div class="small">Not enough groups for pairwise tests.</div>`;
+      return;
+    }
+    const rows = pairs.map(x=>[
+      `${x.a} vs ${x.b}`,
+      fmt(x.meanDiff,6),
+      fmt(x.stat,6),
+      x.df,
+      fmt(x.pRaw,8),
+      `<b>${fmt(x.pAdj,8)}</b>`,
+      (x.pAdj < alpha) ? `<span style="color:var(--good);font-weight:800;">Yes</span>` : `No`
+    ]);
+    document.getElementById('pairwiseTable').innerHTML = htmlTable(
+      ["Comparison","Mean diff","t","df","p (raw)",`p (${corr})`,"Sig?"],
+      rows
+    );
+  } else {
+    // Tukey
+    const reps = Math.max(5000, Math.round(Number(document.getElementById('tukeyReps').value || 60000)));
+    const seed = Math.max(1, Math.round(Number(document.getElementById('tukeySeed').value || 12345)));
+
+    const {pairs, qcrit} = tukeyKramerPairs(res, alpha, reps, seed);
+    const rows = pairs.map(x=>[
+      `${x.a} vs ${x.b}`,
+      fmt(x.meanDiff,6),
+      `<b>${fmt(x.stat,6)}</b>`,
+      fmt(qcrit,6),
+      fmt(x.pAdj,8),
+      x.sig ? `<span style="color:var(--good);font-weight:800;">Yes</span>` : `No`
+    ]);
+    document.getElementById('pairwiseTable').innerHTML =
+      `<div class="small">Tukey critical value q<sub>α</sub>(k=${res.k}, df=${res.dfW}) ≈ <b>${fmt(qcrit,6)}</b> (Monte Carlo, reps=${reps}, seed=${seed})</div>` +
+      htmlTable(["Comparison","Mean diff","q","qcrit","p (Tukey)","Sig?"], rows);
+  }
+}
+
+function compute(){
+  clearMsg();
+  const mode = document.getElementById('mode').value;
+  const alpha = Number(document.getElementById('alpha').value);
+  if(!(alpha>0 && alpha<1)){
+    setMsg("Alpha must be between 0 and 1.");
+    return;
+  }
+  const text = document.getElementById('data').value.trim();
+  if(!text){
+    setMsg("Paste data first (or click Load example).");
+    return;
+  }
+
+  try{
+    const groups = mode === "labels" ? parseLabels(text) : parseColumns(text);
+    LAST_GROUPS = groups;
+
+    const tooSmall = Array.from(groups.entries()).filter(([_,v])=>v.length<2).map(([k,v])=>`${k} (n=${v.length})`);
+    if(tooSmall.length>0){
+      setMsg(`Warning: some groups have n<2: ${tooSmall.join(", ")}. ANOVA can run but results may be unstable.`, true);
+    }
+    const res = anovaOneWay(groups);
+    render(res);
+    if(tooSmall.length===0) setMsg("Computed successfully.", true);
+  } catch(e){
+    setMsg(e.message || String(e));
+  }
+}
+
+function loadExample(){
+  const ex =
+`GroupA,GroupB,GroupC,GroupD
+12,10,9,14
+11,12,8,15
+13,9,10,16
+10,11,9,14
+12,10,8,13
+11,9,10,15`;
+  document.getElementById('mode').value = "columns";
+  document.getElementById('data').value = ex;
+  compute();
+}
+function clearAll(){
+  document.getElementById('data').value = "";
+  document.getElementById('summaryPills').innerHTML = "";
+  document.getElementById('anovaTable').innerHTML = "";
+  document.getElementById('descTable').innerHTML = "";
+  document.getElementById('pairwiseTable').innerHTML = "";
+  clearMsg();
+  LAST_RES = null;
+  LAST_GROUPS = null;
+  const ctx = document.getElementById('boxplot').getContext('2d');
+  ctx.clearRect(0,0,ctx.canvas.width,ctx.canvas.height);
+}
+
+/* ---------- Wiring ---------- */
+document.getElementById('btnCompute').addEventListener('click', compute);
+document.getElementById('btnExample').addEventListener('click', loadExample);
+document.getElementById('btnClear').addEventListener('click', clearAll);
+
+document.getElementById('corr').addEventListener('change', ()=>{ if(LAST_RES) renderPosthoc(LAST_RES); });
+document.getElementById('posthocMethod').addEventListener('change', ()=>{ if(LAST_RES) renderPosthoc(LAST_RES); });
+
+document.getElementById('btnReSim').addEventListener('click', ()=>{ if(LAST_RES) renderPosthoc(LAST_RES); });
+
+window.addEventListener('resize', ()=>{
+  if(LAST_RES) drawBoxplots(LAST_RES);
+});
+
+/* auto example on first load */
+loadExample();
+</script>
+</body>
+</html>
