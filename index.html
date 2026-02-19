@@ -31,19 +31,33 @@
       padding:18px 18px;
       border-bottom:4px solid var(--gold);
     }
-    header .title{
-      display:flex; gap:10px; align-items:center; flex-wrap:wrap;
-      max-width:1100px; margin:0 auto;
-    }
-    .badge{
-      display:inline-flex; align-items:center; gap:8px;
-      padding:6px 10px; border-radius:999px;
-      background:rgba(242,169,0,.18);
-      border:1px solid rgba(242,169,0,.45);
-      color:#fff;
-      font-weight:600;
-      letter-spacing:.2px;
-    }
+header .title{
+  display:flex;
+  align-items:center;
+  justify-content:space-between; /* pushes badge right */
+  gap:12px;
+  flex-wrap:wrap;
+  max-width:1100px;
+  margin:0 auto;
+}
+
+.titleText{
+  display:flex;
+  flex-direction:column;
+}
+
+.badge{
+  display:inline-flex;
+  align-items:center;
+  padding:6px 14px;
+  border-radius:999px;              /* oval */
+  background:var(--gold);           /* gold fill */
+  color:var(--navy);                /* navy text */
+  font-weight:800;
+  letter-spacing:.3px;
+  border:2px solid var(--navy);     /* navy outline for crisp ERAU look */
+}
+
     .badge .dot{width:8px;height:8px;border-radius:50%;background:var(--gold)}
     h1{margin:0;font-size:18px;font-weight:800}
     .sub{margin:2px 0 0 0;color:rgba(255,255,255,.85);font-size:13px}
@@ -138,15 +152,17 @@
   </style>
 </head>
 <body>
-  <header>
-    <div class="title">
-      <span class="badge"><span class="dot"></span> ERAU Style</span>
-      <div>
-        <h1>One-Way ANOVA Calculator</h1>
-        <div class="sub">ANOVA table + Tukey HSD (Tukey–Kramer) + Boxplots</div>
-      </div>
+<header>
+  <div class="title">
+    <div class="titleText">
+      <h1>One-Way ANOVA Calculator</h1>
+      <div class="sub">ANOVA table + Tukey HSD (Tukey–Kramer) + Boxplots</div>
     </div>
-  </header>
+
+    <span class="badge"><span class="dot"></span> Embry-Riddle Aeronautical University</span>
+  </div>
+</header>
+</header>
 
   <main>
     <div class="grid">
